@@ -24,9 +24,10 @@ class Fitness(QWidget):
         self.initUI()
         
     def settings(self):
-        self.setWindowTitle("************************* Fitness Tracker 1.0 ****************************")
+        self.setWindowTitle("Fitness Tracker")
         self.resize(800, 600)
-
+      
+    
     # initUI
     def initUI(self):
 
@@ -96,14 +97,7 @@ class Fitness(QWidget):
         self.master_layout.addLayout(self.col1, 30)
         self.master_layout.addLayout(self.col2, 70)
         self.setLayout(self.master_layout)
-
-
-
-
-        
-
-
-
+   
 
     # load past tables
 
@@ -125,13 +119,7 @@ class Fitness(QWidget):
     # Reset
 
 
-# initialize database
 
-
-
-
-
-# initialize DB
 
 
 
@@ -142,4 +130,28 @@ if __name__ == "__main__":
     fitness = Fitness()
     fitness.show()
     app.exec()
+
+# initialize database, outside class beacuse I need different database for each user
+
+db = QSqlDatabase.addDatabase("QSQLITE")
+db.setDatabaseName("fitness.db")
+
+if not db.open():
+    QMessageBox.critical(None, "ERROR", "Cannot Open Database!!!")
+    exit(2)
+
+query = QSqlQuery()
+query.exec("""
+            CREATE TABLE IF NOT EXISTS fitness(
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+           date TEXT,
+           calories REAL,
+           distance REAL,
+           description  TEXT
+           )
+            """)
+
+
+
+
 
