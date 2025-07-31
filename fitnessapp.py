@@ -97,9 +97,29 @@ class Fitness(QWidget):
         self.master_layout.addLayout(self.col1, 30)
         self.master_layout.addLayout(self.col2, 70)
         self.setLayout(self.master_layout)
+        
+        self.load_table()
    
 
     # load past tables
+    def load_table(self):
+        self.table.setRowCount(0)
+        query  = QSqlQuery("SELECT * FROM fitness ORDER BY date DESC")
+        row = 0
+        while query.next():
+            id = query.value(0)
+            date = query.value(1)
+            calories = query.value(2)
+            distance = query.value(3)
+            description = query.value(4)
+
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QTableWidgetItem(str(id)))
+            self.table.setItem(row, 1, QTableWidgetItem(date))
+            self.table.setItem(row, 2, QTableWidgetItem(str(calories)))
+            self.table.setItem(row, 3, QTableWidgetItem(str(distance)))
+            self.table.setItem(row, 4, QTableWidgetItem(description))
+            row +=1
 
     # Add tables
 
@@ -137,19 +157,23 @@ db = QSqlDatabase.addDatabase("QSQLITE")
 db.setDatabaseName("fitness.db")
 
 if not db.open():
-    QMessageBox.critical(None, "ERROR", "Cannot Open Database!!!")
-    exit(2)
+    QMessageBox.critical(None, "Error", "cannot open database")
+    exit(3)
 
 query = QSqlQuery()
 query.exec("""
             CREATE TABLE IF NOT EXISTS fitness(
            id INTEGER PRIMARY KEY AUTOINCREMENT,
            date TEXT,
-           calories REAL,
+           calroes REAL,
            distance REAL,
-           description  TEXT
-           )
-            """)
+           description TEXT)
+""")
+
+
+
+
+
 
 
 
