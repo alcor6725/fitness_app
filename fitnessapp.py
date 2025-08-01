@@ -22,7 +22,8 @@ class Fitness(QWidget):
         super().__init__()
         self.settings()
         self.initUI()
-        self.btn_click()
+        self.btn_clicked()
+        
         
         
     def settings(self):
@@ -104,9 +105,12 @@ class Fitness(QWidget):
    
 
     # Events
-    def btn_click(self):
+    def btn_clicked(self):
         self.add_btn.clicked.connect(self.add_workout)
     
+
+
+            
   
 
     # load past table
@@ -115,8 +119,8 @@ class Fitness(QWidget):
         row = 0
         query = QSqlQuery("SELECT * FROM fitness ORDER BY date DESC")
         while query.next():
-            id = query.value(0) # first column
-            date = query.value(1) # second column
+            id = query.value(0)
+            date = query.value(1)
             calories = query.value(2)
             distance = query.value(3)
             description = query.value(4)
@@ -128,9 +132,8 @@ class Fitness(QWidget):
             self.table.setItem(row, 3, QTableWidgetItem(str(distance)))
             self.table.setItem(row, 4, QTableWidgetItem(description))
             row +=1
-            
-    
 
+        
     # Add workout
     def add_workout(self):
         date = self.date_box.date().toString("yyyy-MM-dd")
@@ -138,11 +141,8 @@ class Fitness(QWidget):
         distance = self.distance_box.text()
         description = self.description.text()
 
-        query = QSqlQuery(
-                          """
-                          INSERT INTO fitness (date, calories, distance, description)
-                          VALUES (?,?,?,?)
-                          """)   
+        query = QSqlQuery("""INSERT INTO fitness (date, calories, distance, description)
+                   VALUES (?,?,?,?)""")
         query.addBindValue(date)
         query.addBindValue(calories)
         query.addBindValue(distance)
@@ -150,10 +150,13 @@ class Fitness(QWidget):
         query.exec()
 
         self.load_table()
+
         self.date_box.setDate(QDate.currentDate())
         self.kal_box.clear()
         self.distance_box.clear()
         self.description.clear()
+
+
 
 
 
@@ -185,26 +188,27 @@ class Fitness(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
-
     db = QSqlDatabase.addDatabase("QSQLITE")
     db.setDatabaseName("fitness.db")
 
     if not db.open():
-        QMessageBox.critical(None, "ERROR", "cannot open database")
+        QMessageBox.critical(None," ERROR", "Cannot open database")
         exit(2)
-
+    
     query = QSqlQuery()
     query.exec("""
-           CREATE TABLE IF NOT EXISTS fitness(
-           id INTEGER PRIMARY KEY AUTOINCREMENT,
-           date TEXT,
-           calories REAL,
-           distance REAL,
-           description TEXT)
-           """)
+               CREATE TABLE IF NOT EXISTS fitness(
+               id INTEGER PRIMAR KEY AUTOINCREMENT,
+               date TEXT,
+               calroies REAL,
+               distance REAL,
+               description TEXT
+               )
+                """)
     fitness = Fitness()
     fitness.show()
     app.exec()
+
 
 
 
