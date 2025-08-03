@@ -22,13 +22,13 @@ class Fitness(QWidget):
         super().__init__()
         self.settings()
         self.initUI()
-        self.btn_clicked()
-        
-        
+        self.btn_click()
+       
         
     def settings(self):
-        self.setWindowTitle("Fitness Tracker")
+        self.setWindowTitle("Fitness Tracker 1.2")
         self.resize(800, 600)
+        
       
     
     # initUI
@@ -101,88 +101,129 @@ class Fitness(QWidget):
         self.master_layout.addLayout(self.col2, 70)
         self.setLayout(self.master_layout)
         
-        self.load_table()
-   
+        self.load_table() # loads table on display
 
-    # Events
-    def btn_clicked(self):
+
+
+    # btn events
+    def btn_click(self):
         self.add_btn.clicked.connect(self.add_workout)
-    
+        self.delete_btn.clicked.connect(self.delete_workout)
+        self.submit_btn.clicked.connect(self.plot_data)
+        self.clear_btn.clicked.connect(self.reset)
 
-
-            
-  
-
-    # load past table
+    # load_table from database
     def load_table(self):
         self.table.setRowCount(0)
         row = 0
         query = QSqlQuery("SELECT * FROM fitness ORDER BY date DESC")
         while query.next():
-            id = query.value(0)
-            date = query.value(1)
-            calories = query.value(2)
-            distance = query.value(3)
-            description = query.value(4)
+             id = query.value(0)  
+             date = query.value(1)
+             calories = query.value(2)
+             distance = query.value(3)
+             description = query.value(4)
 
-            self.table.insertRow(row)
-            self.table.setItem(row, 0, QTableWidgetItem(str(id)))
-            self.table.setItem(row, 1, QTableWidgetItem(date))
-            self.table.setItem(row, 2, QTableWidgetItem(str(calories)))
-            self.table.setItem(row, 3, QTableWidgetItem(str(distance)))
-            self.table.setItem(row, 4, QTableWidgetItem(description))
-            row +=1
+             self.table.insertRow(row)
+             self.table.setItem(row, 0, QTableWidgetItem(str(id)))
+             self.table.setItem(row, 1, QTableWidgetItem(date))
+             self.table.setItem(row, 2, QTableWidgetItem(str(calories)))
+             self.table.setItem(row, 3, QTableWidgetItem(str(distance)))
+             self.table.setItem(row, 4, QTableWidgetItem(description))
+             row +=1
 
-        
-    # Add workout
+
+    # add work out to database and display new row
     def add_workout(self):
         date = self.date_box.date().toString("yyyy-MM-dd")
         calories = self.kal_box.text()
         distance = self.distance_box.text()
         description = self.description.text()
 
-        query = QSqlQuery("""INSERT INTO fitness (date, calories, distance, description)
-                   VALUES (?,?,?,?)""")
+        query = QSqlQuery("""INSERT INTO fitness(date, calories, distance, description)
+                          VALUES (?,?,?,?)""")
         query.addBindValue(date)
         query.addBindValue(calories)
         query.addBindValue(distance)
         query.addBindValue(description)
         query.exec()
-
+        
         self.load_table()
 
-        self.date_box.setDate(QDate.currentDate())
+        self.date_box.setDate(QDate.currentDate)
         self.kal_box.clear()
         self.distance_box.clear()
         self.description.clear()
 
 
-
-
-
+    # delete work out from database and update display
+    def delete_workout(self):
+        selected_row = self.table.currentRow()
+        if selected_row == -1:
+            QMessageBox.warning(self, "ERROR", "Please select row to delete")
         
+        fit_id = int(self.table.item(selected_row, 0).text())
 
-    # Delete tables
+        confirm = QMessageBox.question(self,"Deleting selected workout", "Are You Sure?",
+                                       QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No)
+        if confirm == QMessageBox.StandardButton.No:
+            return
+        
+        query = QSqlQuery()
+        query.prepare("DELETE FROM fitness WHERE id =?")
+        query.addBindValue(fit_id)
+        query.exec()
+
+        self.load_table()
+      
 
 
-    # Calculate Calories
+    # display graph 
+    def plot_data(self):
+        calories = []
+        distances =[]
 
-
-    # click functionality
-
+        query = QSqlQuery("SELECT calories, distance FROM fitness ORDER BY calories ASC")
+        while query.next():
+            calorie = query.value(0)
+            distance = query.value(1)
+            calories.append(calorie)
+            distances.append(distance)
+        
+        try:
+            min_cal = min(calories)
+            max_cal = max(calories)
+            normalized_cal = [(cal - min_cal)/(max_cal - min_cal) for cal in calories]
+            print(min_cal, max_cal)
+            print(calories)
+            print(distances)
+            print(normalized_cal)
+            
+            plt.style.use("Solarize_Light2")
+            ax = self.figure.subplots()
+            ax.scatter(distances, calories, c=normalized_cal, cmap = 'viridis', label = "Data Points")
+            ax.set_title("Distance Vs Calories")
+            ax.set_xlabel("Distance (km)")
+            ax.set_ylabel("Calories (cal)")
+            #cbar = ax.figure.colorbar(ax.collections[0], label = "Normalized Calories")
+            ax.legend()
+            self.canvas.draw()
+        
+        except Exception as e:
+            print("ERROR : {e}")
+            QMessageBox.warning(self,"ERROR", "Data Missing")
+            
 
     # Dark Mode
 
-
-
     # Reset
-
-
-
-# initialize database, outside class beacuse I need different database for each user
-
-
-
+    def reset(self):
+        self.date_box.setDate(QDate.currentDate())
+        self.kal_box.clear()
+        self.distance_box.clear()
+        self.description.clear()
+        self.figure.clear()
+        self.canvas.draw()
 
 # main
 
@@ -192,19 +233,20 @@ if __name__ == "__main__":
     db.setDatabaseName("fitness.db")
 
     if not db.open():
-        QMessageBox.critical(None," ERROR", "Cannot open database")
+        QMessageBox.critical(None, "ERROR", "Could not open Database")
         exit(2)
     
     query = QSqlQuery()
     query.exec("""
-               CREATE TABLE IF NOT EXISTS fitness(
-               id INTEGER PRIMAR KEY AUTOINCREMENT,
+                CREATE TABLE IF NOT EXISTS fitness(
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
                date TEXT,
-               calroies REAL,
+               calories REAL,
                distance REAL,
-               description TEXT
-               )
+               description TEXT)
                 """)
+
+    
     fitness = Fitness()
     fitness.show()
     app.exec()
